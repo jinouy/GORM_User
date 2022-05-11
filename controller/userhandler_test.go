@@ -26,11 +26,11 @@ func TestGetUsers(t *testing.T) {
 		t.Run(testCase.TestName, func(t *testing.T) { //子测试
 
 			//req设定了结构体中的请求
-			req, err1 := http.NewRequest(testCase.HttpDate, "http://localhost:8080/getUsers", nil)
-			require.NoError(t, err1)
+			req, err := http.NewRequest(testCase.HttpDate, "http://localhost:8080/getUsers", nil)
+			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
-			resp, err2 := http.DefaultClient.Do(req)
-			require.NoError(t, err2)
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
 			assert.Equal(t, testCase.StatusCode, resp.StatusCode, "They should be equal")
 		})
 	}
@@ -52,17 +52,17 @@ func TestGetUserName(t *testing.T) {
 			u := &model.User{ //将UserDate的内容传入结构体u中
 				Name: testCase.UserDate,
 			}
-			json, err1 := json2.Marshal(u) //对结构体u进行json的编码操作
-			require.NoError(t, err1)
+			json, err := json2.Marshal(u) //对结构体u进行json的编码操作
+			require.NoError(t, err)
 
 			//req是GET的响应对象
-			req, err2 := http.NewRequest("GET", "http://localhost:8080/getUserName", bytes.NewReader(json))
-			require.NoError(t, err2)
+			req, err := http.NewRequest("GET", "http://localhost:8080/getUserName", bytes.NewReader(json))
+			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
-			resp, err2 := http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
 
-			require.NoError(t, err2)
+			require.NoError(t, err)
 			assert.Equal(t, testCase.StatusCode, resp.StatusCode, "They should be equal")
 		})
 
@@ -84,16 +84,16 @@ func TestAddUser(t *testing.T) {
 	for _, testCase := range testCases { //进行三次测试
 		t.Run(testCase.TestName, func(t *testing.T) { //子测试
 			u := &model.User{Name: testCase.UserDate}
-			json, err1 := json2.Marshal(u) //将结构体u转化为json编码
-			require.NoError(t, err1)
+			json, err := json2.Marshal(u) //将结构体u转化为json编码
+			require.NoError(t, err)
 
 			// req为POST请求的具体对象
-			req, err2 := http.NewRequest("POST", "http://localhost:8080/addUser", bytes.NewReader(json))
-			require.NoError(t, err2)
+			req, err := http.NewRequest("POST", "http://localhost:8080/addUser", bytes.NewReader(json))
+			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
-			resp, err3 := http.DefaultClient.Do(req) //resp返回http的响应
-			require.NoError(t, err3)
+			resp, err := http.DefaultClient.Do(req) //resp返回http的响应
+			require.NoError(t, err)
 
 			//通过判断结构体中设定的status与实际的传入的status来测试是否通过
 			assert.Equal(t, testCase.StatusCode, resp.StatusCode, "They should be equal")
@@ -120,15 +120,15 @@ func TestDpdUserName(t *testing.T) {
 				OldName: testCase.OldDate,
 				NewName: testCase.NewDate,
 			}
-			json, err1 := json2.Marshal(u) //将结构体u转化为json编码
-			require.NoError(t, err1)
+			json, err := json2.Marshal(u) //将结构体u转化为json编码
+			require.NoError(t, err)
 			// req为POST请求的具体对象
-			req, err2 := http.NewRequest("PUT", "http://localhost:8080/updateUserName", bytes.NewReader(json))
-			require.NoError(t, err2)
+			req, err := http.NewRequest("PUT", "http://localhost:8080/updateUserName", bytes.NewReader(json))
+			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
-			resp, err3 := http.DefaultClient.Do(req) //resp返回http的响应
-			require.NoError(t, err3)
+			resp, err := http.DefaultClient.Do(req) //resp返回http的响应
+			require.NoError(t, err)
 
 			//通过判断结构体中设定的status与实际的传入的status来测试是否通过
 			//body, _ := ioutil.ReadAll(resp.Body)   输出错误
@@ -153,16 +153,16 @@ func TestDelUser(t *testing.T) {
 			u := &model.User{ //将测试的UserDate内容传入结构体u中
 				Name: testCase.UserDate,
 			}
-			json, err1 := json2.Marshal(u) //对结构体u进行json编码
-			require.NoError(t, err1)
+			json, err := json2.Marshal(u) //对结构体u进行json编码
+			require.NoError(t, err)
 
 			//执行DELETE操作，将返回的值传入req中，req为DELETE请求的具体对象
-			req, err2 := http.NewRequest("DELETE", "http://localhost:8080/deleteUserName", bytes.NewReader(json))
-			require.NoError(t, err2)
+			req, err := http.NewRequest("DELETE", "http://localhost:8080/deleteUserName", bytes.NewReader(json))
+			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
-			resp, err3 := http.DefaultClient.Do(req) //resp返回http的响应
-			require.NoError(t, err3)
+			resp, err := http.DefaultClient.Do(req) //resp返回http的响应
+			require.NoError(t, err)
 
 			//通过判断结构体中设定的status与实际的传入的status来测试是否通过
 			assert.Equal(t, testCase.StatusCode, resp.StatusCode, "They should be equal")

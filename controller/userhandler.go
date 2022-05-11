@@ -13,7 +13,11 @@ import (
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	//接收GET请求
 	if strings.ToUpper(r.Method) == "GET" {
-		users, _ := dao.GetUsers()        //将数据库中找到的内容赋给结构体users
+		users, err := dao.GetUsers() //将数据库中找到的内容赋给结构体users
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		json, err := json2.Marshal(users) //将结构体users转化为json编码
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -33,15 +37,19 @@ func GetUserName(w http.ResponseWriter, r *http.Request) {
 	if strings.ToUpper(r.Method) == "GET" {
 		//定义u结构体
 		var u model.User
-		body, err1 := ioutil.ReadAll(r.Body) //读取r.Body的json内容赋给body
-		if err1 != nil {
-			http.Error(w, err1.Error(), http.StatusBadRequest) //err1不为空，则返回错误信息
+		body, err := ioutil.ReadAll(r.Body) //读取r.Body的json内容赋给body
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest) //err不为空，则返回错误信息
 			return
 		}
-		json2.Unmarshal(body, &u) //解析body的json编码的数据并将结果存在结构体u中
+		err = json2.Unmarshal(body, &u) //解析body的json编码的数据并将结果存在结构体u中
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
+			return
+		}
 
-		err2 := json2.Valid([]byte(body)) //判断传入json编码格式
-		if err2 == false {
+		err1 := json2.Valid([]byte(body)) //判断传入json编码格式
+		if err1 == false {
 			http.Error(w, "传入参数格式不对", http.StatusBadRequest)
 			return
 		}
@@ -49,14 +57,18 @@ func GetUserName(w http.ResponseWriter, r *http.Request) {
 		username := &model.User{
 			Name: u.Name,
 		}
-		user, err3 := dao.GetUserName(username)
-		if err3 != nil { //添加相同名字的限制条件，如果相同就返回错误
-			http.Error(w, err3.Error(), http.StatusBadRequest)
+		user, data, err := dao.GetUserName(username)
+		if data != nil {
+			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
-		json, err4 := json2.Marshal(user) //将user结构体转化为json编码
-		if err4 != nil {
-			http.Error(w, err4.Error(), http.StatusInternalServerError)
+		if err != nil { //数据库怠机，返回错误
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json, err := json2.Marshal(user) //将user结构体转化为json编码
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json") //设置Content-Type参数json
@@ -74,16 +86,20 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 
 		//定义u结构体
 		var u model.User
-		body, err1 := ioutil.ReadAll(r.Body) //读取r.Body的json内容赋给body
-		if err1 != nil {
-			http.Error(w, err1.Error(), http.StatusBadRequest) //err1不为空，则返回错误信息
+		body, err := ioutil.ReadAll(r.Body) //读取r.Body的json内容赋给body
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
 			return
 		}
 
-		json2.Unmarshal(body, &u) //解析body的json编码的数据并将结果存在结构体u中
+		err = json2.Unmarshal(body, &u) //解析body的json编码的数据并将结果存在结构体u中
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
+			return
+		}
 
-		err2 := json2.Valid([]byte(body)) //判断传入json编码格式
-		if err2 == false {
+		err1 := json2.Valid([]byte(body)) //判断传入json编码格式
+		if err1 == false {
 			http.Error(w, "传入参数格式不对", http.StatusBadRequest)
 			return
 		}
@@ -95,14 +111,18 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "长度格式错误", http.StatusBadRequest)
 			return
 		}
-		users, err3 := dao.AddUser(user) //进行数据库的增加操作
-		if err3 != nil {                 //添加相同名字的限制条件，如果相同就返回错误
-			http.Error(w, err3.Error(), http.StatusBadRequest)
+		users, data, err := dao.AddUser(user) //进行数据库的增加操作
+		if data != nil {                      //添加相同名字的限制条件，如果相同就返回错误
+			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
-		json, err4 := json2.Marshal(users) //将user结构体转化为json编码
-		if err4 != nil {
-			http.Error(w, err4.Error(), http.StatusInternalServerError)
+		if err != nil { //数据库怠机，返回错误
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json, err := json2.Marshal(users) //将user结构体转化为json编码
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json") //设置Content-Type参数json
@@ -118,15 +138,19 @@ func DpdUserName(w http.ResponseWriter, r *http.Request) {
 	//接收PUT的修改请求
 	if strings.ToUpper(r.Method) == "PUT" {
 
-		body, err1 := ioutil.ReadAll(r.Body) //读取r.Body里的json编码传入body里
-		if err1 != nil {
-			http.Error(w, err1.Error(), http.StatusInternalServerError)
+		body, err := ioutil.ReadAll(r.Body) //读取r.Body里的json编码传入body里
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		var u model.Username              //定义结果体u(包含OldName和NewName)
-		json2.Unmarshal(body, &u)         //对body里的json编码进行解码操作，传入结构体u中
-		err2 := json2.Valid([]byte(body)) //判断传入json编码格式
-		if err2 == false {
+		var u model.Username            //定义结果体u(包含OldName和NewName)
+		err = json2.Unmarshal(body, &u) //对body里的json编码进行解码操作，传入结构体u中
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
+			return
+		}
+		err1 := json2.Valid([]byte(body)) //判断传入json编码格式
+		if err1 == false {
 			http.Error(w, "传入参数格式不对", http.StatusBadRequest)
 			return
 		}
@@ -138,14 +162,18 @@ func DpdUserName(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "长度格式错误", http.StatusBadRequest)
 			return
 		}
-		users, err3 := dao.DpdUser(username)
-		if err3 != nil { //添加相同名字的限制条件，如果相同就返回错误
-			http.Error(w, err3.Error(), http.StatusBadRequest)
+		users, data, err := dao.DpdUser(username)
+		if data != nil { //添加相同名字的限制条件，如果相同就返回错误
+			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
-		json, err4 := json2.Marshal(users) //对结构体users进行编码操作成json格式
-		if err3 != nil {
-			http.Error(w, err4.Error(), http.StatusInternalServerError)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json, err := json2.Marshal(users) //对结构体users进行编码操作成json格式
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -162,29 +190,37 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 	if strings.ToUpper(r.Method) == "DELETE" {
 
 		var u model.User
-		body, err1 := ioutil.ReadAll(r.Body)
-		if err1 != nil {
-			http.Error(w, err1.Error(), http.StatusInternalServerError)
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		jsonData := body
-		err2 := json2.Valid([]byte(jsonData)) //判断传入json编码格式
-		if err2 == false {
+		err1 := json2.Valid([]byte(jsonData)) //判断传入json编码格式
+		if err1 == false {
 			http.Error(w, "传入参数格式不对", http.StatusBadRequest)
 			return
 		}
-		json2.Unmarshal(jsonData, &u)
+		err = json2.Unmarshal(jsonData, &u)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
+			return
+		}
 		user := &model.User{
 			Name: u.Name,
 		}
-		users, err3 := dao.DelUser(user)
-		if err3 != nil {
-			http.Error(w, err3.Error(), http.StatusBadRequest)
+		users, data, err := dao.DelUser(user)
+		if data != nil {
+			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
-		json, err4 := json2.Marshal(users)
-		if err4 != nil {
-			http.Error(w, err3.Error(), http.StatusInternalServerError)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json, err := json2.Marshal(users)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
