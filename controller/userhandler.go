@@ -57,11 +57,13 @@ func GetUserName(w http.ResponseWriter, r *http.Request) {
 		username := &model.User{
 			Name: u.Name,
 		}
+
 		user, data, err := dao.GetUserName(username)
-		if data != nil {
+		if data != nil { // 不存在，返回错误
 			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
+
 		if err != nil { //数据库怠机，返回错误
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -74,6 +76,61 @@ func GetUserName(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json") //设置Content-Type参数json
 		w.WriteHeader(http.StatusOK)                       //Header添加状态码
 		w.Write(json)                                      //输出json编码
+	} else {
+		http.Error(w, "请求方式错误", http.StatusNotFound)
+	}
+}
+
+//GetUserPage 分页查询用户
+func GetUserPage(w http.ResponseWriter, r *http.Request) {
+	//接收Get请求 分页查询
+	if strings.ToUpper(r.Method) == "GET" {
+
+		//定义结构体page
+		var p model.Page
+
+		body, err := ioutil.ReadAll(r.Body) //读取r.Body的json编码传入body
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //读取编码存在异常，返回错误
+			return
+		}
+		err = json2.Unmarshal(body, &p) //将json编码转码结果存放到结构体page中
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError) //转码存在异常，返回错误
+			return
+		}
+		err1 := json2.Valid([]byte(body)) //判断传入json编码格式是否正确
+		if err1 == false {
+			http.Error(w, "传入参数格式不对", http.StatusBadRequest) //编码格式不对，返回错误
+			return
+		}
+		page := &model.Page{
+			PageNum:  p.PageNum,
+			PageSize: p.PageSize,
+		}
+		users, data, err := dao.GetUsersPage(page)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if data != nil {
+			http.Error(w, string(data), http.StatusBadRequest)
+			return
+		}
+
+		if len(users) == 0 {
+			http.Error(w, "查询页码过大", http.StatusBadRequest)
+			return
+		}
+		json, err := json2.Marshal(users)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json") //设置Content-Type参数json
+		w.WriteHeader(http.StatusCreated)                  //Header添加状态码
+		w.Write(json)                                      //输出json编码
+
 	} else {
 		http.Error(w, "请求方式错误", http.StatusNotFound)
 	}
@@ -107,15 +164,20 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 		user := &model.User{
 			Name: u.Name,
 		}
+		errUnknown, _, err := dao.GetUserName(user)
+		if errUnknown != (model.User{}) {
+			http.Error(w, "名字已存在", http.StatusBadRequest)
+			return
+		}
 		if len(u.Name) < 2 || len(u.Name) > 10 { //添加限制条件，对于输入的名字小于2或者大于10的值返回错误
 			http.Error(w, "长度格式错误", http.StatusBadRequest)
 			return
 		}
-		users, data, err := dao.AddUser(user) //进行数据库的增加操作
-		if data != nil {                      //添加相同名字的限制条件，如果相同就返回错误
-			http.Error(w, string(data), http.StatusBadRequest)
-			return
-		}
+		users, err := dao.AddUser(user) //进行数据库的增加操作
+		//if data != nil {                      //添加相同名字的限制条件，如果相同就返回错误
+		//	http.Error(w, string(data), http.StatusBadRequest)
+		//	return
+		//}
 		if err != nil { //数据库怠机，返回错误
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -149,6 +211,7 @@ func DpdUserName(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError) //err不为空，则返回错误信息
 			return
 		}
+
 		err1 := json2.Valid([]byte(body)) //判断传入json编码格式
 		if err1 == false {
 			http.Error(w, "传入参数格式不对", http.StatusBadRequest)
@@ -158,15 +221,35 @@ func DpdUserName(w http.ResponseWriter, r *http.Request) {
 			OldName: u.OldName,
 			NewName: u.NewName,
 		}
+		userNewname := &model.User{
+			Name: u.NewName,
+		}
+		userOldname := &model.User{
+			Name: u.OldName,
+		}
 		if len(u.NewName) < 2 || len(u.NewName) > 10 { //添加限制条件，对于输入的名字小于2或者大于10的值返回错误
 			http.Error(w, "长度格式错误", http.StatusBadRequest)
 			return
 		}
-		users, data, err := dao.DpdUser(username)
+		errUnknown, _, err := dao.GetUserName(userNewname)
+		if errUnknown != (model.User{}) {
+			http.Error(w, "名字已存在", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, data, err := dao.GetUserName(userOldname)
 		if data != nil { //添加相同名字的限制条件，如果相同就返回错误
 			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		users, err := dao.DpdUser(username)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -209,11 +292,12 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 		user := &model.User{
 			Name: u.Name,
 		}
-		users, data, err := dao.DelUser(user)
+		_, data, err := dao.GetUserName(user)
 		if data != nil {
 			http.Error(w, string(data), http.StatusBadRequest)
 			return
 		}
+		users, err := dao.DelUser(user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -229,7 +313,6 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "请求方式错误", http.StatusNotFound)
 	}
-
 }
 
 //func DelUserID(w http.ResponseWriter, r *http.Request) {

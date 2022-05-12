@@ -69,6 +69,44 @@ func TestGetUserName(t *testing.T) {
 	}
 }
 
+func TestGetUserPage(t *testing.T) {
+	testCases := []struct { //定义测试的结构体
+		TestName   string
+		NumDate    int
+		SizeDate   int
+		StatusCode int
+	}{
+		//测试组
+		{"TestCase1_Right", 2, 2, 201},
+		{"TestCase2_Num", 100, 1, 400},
+		{"TestCase3_Size", 2, 100, 400},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.TestName, func(t *testing.T) {
+
+			p := &model.Page{
+				PageNum:  testCase.NumDate,
+				PageSize: testCase.SizeDate,
+			}
+			json, err := json2.Marshal(p)
+			require.NoError(t, err)
+
+			req, err := http.NewRequest("GET", "http://localhost:8080/getUserPage", bytes.NewReader(json))
+			require.NoError(t, err)
+
+			req.Header.Set("Content-Type", "application/json; charset-UTF-8")
+			resp, err := http.DefaultClient.Do(req) //resp返回http的响应
+			require.NoError(t, err)
+
+			//通过判断结构体中设定的status与实际的传入的status来测试是否通过
+			assert.Equal(t, testCase.StatusCode, resp.StatusCode, "They should be equal")
+
+		})
+
+	}
+
+}
+
 func TestAddUser(t *testing.T) {
 
 	testCases := []struct { //定义测试的结构体
@@ -109,7 +147,7 @@ func TestDpdUserName(t *testing.T) {
 		StatusCode int
 	}{
 		//测试组
-		{"TestCase1_Right", "joy", "joy1", 201},
+		{"TestCase1_Right", "joy1", "joy11", 201},
 		{"TestCase2_Length", "1111", "k", 400},
 		{"TestCase3_Unknown", "te", "22", 400},
 		{"TestCase3_Repeat", "jack", "mark", 400},

@@ -9,6 +9,7 @@ func main() {
 
 	http.HandleFunc("/getUsers", controller.GetUsers)
 	http.HandleFunc("/getUserName", controller.GetUserName)
+	http.HandleFunc("/getUserPage", controller.GetUserPage)
 	http.HandleFunc("/addUser", controller.AddUser)
 	http.HandleFunc("/deleteUserName", controller.DelUser)
 	http.HandleFunc("/updateUserName", controller.DpdUserName)

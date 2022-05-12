@@ -15,6 +15,11 @@ type Username struct {
 	NewName string `json:"newname" grom:"newname"`
 }
 
+type Page struct {
+	PageNum  int `json:"page_num"  grom:"page_num"`
+	PageSize int `json:"page_size" grom:"page_size"`
+}
+
 func init() {
 	utils.Db.AutoMigrate(&User{})
 }
